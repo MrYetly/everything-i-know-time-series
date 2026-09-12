@@ -1,6 +1,8 @@
 \documentclass{tufte-book}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{bm}
 
-\title{Everything I Know About Time Series}
+\title{Everything I Know \\About Time Series}
 \author{Ivan Anich}
 
 \begin{document}
@@ -16,8 +18,92 @@ The whole point of time series analysis is to uncover and describe the statistic
 Assume we have the deterministic process
 
 \begin{equation}
-    y_t = \phi y_{t-1} + w_t
+    y_t = \phi y_{t-1} + w_t \label{eq: first-order-deq}
 \end{equation}
 
-Test
+In order to find the state of this process at any time $t$, we need some kind of initial condition. We may take $y_{-1}$ as given, or if we want to look some arbitrary time setp $j$ into the future from a given time $t$, we may take $y_{t-1}$ as given. In either case, we can use recursion to find the statme of $y_t$ at any future time $t$:
+
+\begin{align*}
+    y_t     &= \phi y_{t-1} + w_t, \\
+    y_{t+1} &= \phi y_{t} + w_{t+1}     &&= \phi (\phi y_{t-1} + w_t) + w_{t+1}                     &&= \phi^2 y_{t-1} + \phi w_t + w_{t+1}, \\
+    y_{t+2} &= \phi y_{t+1} + w_{t+2}   &&= \phi (\phi^2 y_{t-1} + \phi w_t + w_{t+1}) + w_{t+2}    &&= \phi^3 y_{t-1} + \phi^2 w_t + \phi w_{t+1} + w_{t+2}, \\
+            &\vdots \\
+    y_{t+j} &= \phi^{j+1} y_{t-1} + \sum_{k=0}^j \phi^{j-k} w_{t+k}.
+\end{align*}
+
+The last line shows the general form of this process at some future state: it has the classic characteristic of a time series process in that its state at any point in time depends on two things: an initial condition $y_{t-1}$ that encapsulates all of its history up until that point, and the shocks $w_{t+k}$ that have affected the process since the initial condition. The effect of a shock at time $t$ on the system at some future time $t+j$ is
+
+\begin{equation}
+\frac{\partial y_{t+j}}{\partial w_t} = \phi^j,
+\end{equation}
+
+\noindent and the effect of the initial condition is
+\begin{equation}
+\frac{\partial y_{t+j}}{\partial w_t} = \phi^{j+1}.
+\end{equation}
+
+\noindent So, it is clear that the stability of the process depends on $\phi$. If $-1 < \phi < 1$, the effect of the initial condition and all shocks at some future horizon $j$ goes to zero; if $1 < \phi < -1$, the effect of each compounds over time and the process explodes; if $\phi = \pm 1$, the shocks and the initial condition have a permanent effect of the process.
+
+Now, instead of having $y_t$ depend on only its previous value and a contemporary shock, we'll have it depend on the previous $p$ values
+
+\[
+y_t = \phi_1 y_{t-1} + \phi_2 y_{t-2} + \cdots + \phi_p y_{t-p} + w_t.
+\]
+
+\noindent It is often more convenient to transform this into a first-order vector-valued equation,
+ 
+\[
+\bm{\xi}_t = \bm{F} \bm{\xi}_{t-1} + \bm{v}_t
+\]
+
+\noindent where 
+
+\[
+\bm{\xi}_t = \begin{pmatrix}
+y_t \\
+y_{t-1} \\
+\vdots \\
+y_{t-p+1}
+\end{pmatrix}
+\]
+
+\noindent is $p \times 1$,
+
+\[
+\bm{F} = \begin{pmatrix}
+\phi_1  & \phi_2    & \cdots    & \phi_{p-1}    & \phi_p    \\
+1       & 0         & \cdots    & 0         & 0         \\
+0       & 1         & \cdots    & 0         & 0         \\
+\vdots  & \vdots    & \cdots    & \vdots    & \vdots    \\
+0       & 0         & \cdots    & 1         & 0
+\end{pmatrix}
+\]
+
+\noindent is $p \times p$, and
+
+\[
+\bm{v}_t = \begin{pmatrix}
+w_t \\
+0 \\
+\vdots \\
+0
+\end{pmatrix}.
+\]
+
+By a similar recursive operation before, if we have an initial condition at $\xi_{t-1}$ we can solve for the state of the process at some future horizon $j$,
+
+\begin{align*}
+\bm{\xi}_t &= \bm{F} \bm{\xi}_{t-1} + \bm{v}_t, \\
+\bm{\xi}_{t+1} &= \bm{F} \bm{\xi}_{t} + \bm{v}_t &&= \bm{F} (\bm{F} \bm{\xi}_{t-1} + \bm{v}_t) + \bm{v}_{t+1} && = \bm{F}^2 \bm{\xi}_{t-1} + \bm{F} \bm{v}_t + \bm{v}_{t+1}, \\
+\bm{\xi}_{t+2} &= \bm{F} \bm{\xi}_{t+1} + \bm{v}_{t+2} &&= \bm{F} (\bm{F}^2 \bm{\xi}_{t-1} + \bm{F} \bm{v}_t + \bm{v}_{t+1}) + \bm{v}_{t+2} && = \bm{F}^3 \bm{\xi}_{t-1} + \bm{F}^2 \bm{v}_t + \bm{F} \bm{v}_{t+1} + \bm{v}_{t+2}, \\
+&\vdots \\
+\bm{\xi}_{t+j} &= \bm{F}^{j+1} \bm{\xi}_{t-1} + \sum_{k=0}^j \bm{F}^{j-k} \bm{v}_{t-k}
+\end{align*}
+
+Note that the future value of interest $y_{t+j}$ is the first row of this last equation. If $f_{ij}^{n}$ is the $(i,j)$ element of $F^n$, then
+
+\[
+y_{t+j} = f_{11}^{j+1} y_{t-1} + f_{12}^{j+1} y_{t-2} + \cdots + f_{1p}^{j+1} y_{t-p} + w_{t+j} + f_{11} w_{t+j-1} + \cdots + f_{11}^j w_t
+\]
+
 \end{document}
