@@ -13,7 +13,9 @@
 
 \chapter{Difference Equations}
 
-The whole point of time series analysis is to uncover and describe the statistical properties and structure of a process across time. Certain processes may have a lot of structure, so much that advanced non-linear methods such as those enabled by machine learning are needed. Others have very little, and can be adequately described by a very simple model. As we are always worried about overfitting, and there is a general philosophy that parsimony is a good thing, we begin by studying the simplest of processes.
+This chapter is essentially a distillation of Hamilton's \cite{hamilton1994time} chapter of the same name.
+
+The whole point of time series analysis is to uncover and describe the statistical properties and structure of a process across time. Certain processes may have a lot of structure, so much that advanced non-linear methods such as those enabled by machine learning are needed. Others have very little, and must be described by a very simple model as we are always worried about overfitting. So, we begin by studying the simplest of processes.
 
 Assume we have the deterministic process
 
@@ -21,14 +23,14 @@ Assume we have the deterministic process
     y_t = \phi y_{t-1} + w_t \label{eq: first-order-deq}
 \end{equation}
 
-In order to find the state of this process at any time $t$, we need some kind of initial condition. We may take $y_{-1}$ as given, or if we want to look some arbitrary time setp $j$ into the future from a given time $t$, we may take $y_{t-1}$ as given. In either case, we can use recursion to find the statme of $y_t$ at any future time $t$:
+In order to find the state of this process at any time $t$, we need some kind of initial condition. We may take $y_{-1}$ as given, or if we want to look some arbitrary time setp $j$ into the future from a given time $t$, we may take $y_{t-1}$ as given. In either case, we can use recursion to find the state of $y_t$ at any future time $t$:
 
 \begin{align*}
     y_t     &= \phi y_{t-1} + w_t, \\
     y_{t+1} &= \phi y_{t} + w_{t+1}     &&= \phi (\phi y_{t-1} + w_t) + w_{t+1}                     &&= \phi^2 y_{t-1} + \phi w_t + w_{t+1}, \\
     y_{t+2} &= \phi y_{t+1} + w_{t+2}   &&= \phi (\phi^2 y_{t-1} + \phi w_t + w_{t+1}) + w_{t+2}    &&= \phi^3 y_{t-1} + \phi^2 w_t + \phi w_{t+1} + w_{t+2}, \\
             &\vdots \\
-    y_{t+j} &= \phi^{j+1} y_{t-1} + \sum_{k=0}^j \phi^{j-k} w_{t+k}.
+    y_{t+j} &= \phi^{j+1} y_{t-1} + \sum_{k=0}^j \phi^{j-k} w_{t+k}. \refstepcounter{equation} \tag{\theequation} \label{eq:first-order-j-horizon}
 \end{align*}
 
 The last line shows the general form of this process at some future state: it has the classic characteristic of a time series process in that its state at any point in time depends on two things: an initial condition $y_{t-1}$ that encapsulates all of its history up until that point, and the shocks $w_{t+k}$ that have affected the process since the initial condition. The effect of a shock at time $t$ on the system at some future time $t+j$ is
@@ -52,9 +54,9 @@ y_t = \phi_1 y_{t-1} + \phi_2 y_{t-2} + \cdots + \phi_p y_{t-p} + w_t.
 
 \noindent It is often more convenient to transform this into a first-order vector-valued equation,
  
-\[
-\bm{\xi}_t = \bm{F} \bm{\xi}_{t-1} + \bm{v}_t
-\]
+\begin{equation}
+\bm{\xi}_t = \bm{F} \bm{\xi}_{t-1} + \bm{v}_t \label{eq: p-order vector}
+\end{equation}
 
 \noindent where 
 
@@ -97,13 +99,268 @@ By a similar recursive operation before, if we have an initial condition at $\xi
 \bm{\xi}_{t+1} &= \bm{F} \bm{\xi}_{t} + \bm{v}_t &&= \bm{F} (\bm{F} \bm{\xi}_{t-1} + \bm{v}_t) + \bm{v}_{t+1} && = \bm{F}^2 \bm{\xi}_{t-1} + \bm{F} \bm{v}_t + \bm{v}_{t+1}, \\
 \bm{\xi}_{t+2} &= \bm{F} \bm{\xi}_{t+1} + \bm{v}_{t+2} &&= \bm{F} (\bm{F}^2 \bm{\xi}_{t-1} + \bm{F} \bm{v}_t + \bm{v}_{t+1}) + \bm{v}_{t+2} && = \bm{F}^3 \bm{\xi}_{t-1} + \bm{F}^2 \bm{v}_t + \bm{F} \bm{v}_{t+1} + \bm{v}_{t+2}, \\
 &\vdots \\
-\bm{\xi}_{t+j} &= \bm{F}^{j+1} \bm{\xi}_{t-1} + \sum_{k=0}^j \bm{F}^{j-k} \bm{v}_{t-k}
+\bm{\xi}_{t+j} &= \bm{F}^{j+1} \bm{\xi}_{t-1} + \sum_{k=0}^j \bm{F}^{j-k} \bm{v}_{t-k} \refstepcounter{equation} \tag{\theequation} \label{eq:p-order-j-horizon}
 \end{align*}
 
 Note that the future value of interest $y_{t+j}$ is the first row of this last equation. If $f_{ij}^{n}$ is the $(i,j)$ element of $F^n$, then
 
+\begin{align*}
+y_{t+j} = &\underbrace{f_{11}^{j+1} y_{t-1} + f_{12}^{j+1} y_{t-2} + \cdots + f_{1p}^{j+1} y_{t-p}}_{\text{initial conditions}}  \\ 
+& \underbrace{+ w_{t+j} + f_{11} w_{t+j-1} + \cdots + f_{11}^j w_t}_{\text{effect of shocks since initial state}}
+\end{align*}
+
+We can start to see how a process with a complicated structure can have its future values predicted, and how complicated the relationship between past and future values can be. For example, note how the effects of the shocks and the most recent period are all mediated by the $(1,1)$ element of $F^n$. 
+
+\begin{align*}
+f_{11}^1 &= \phi_1 \\
+f_{11}^2 &= (\bm{F} \bm{F})_{1,1} = \left( \begin{pmatrix}
+\phi_1  & \phi_2    & \cdots    & \phi_{p-1}    & \phi_p    \\
+\vdots       & \vdots         & \vdots    & \vdots         & \vdots
+\end{pmatrix} \begin{pmatrix}
+\phi_1  & \cdots \\
+1       & \cdots      \\
+0       & \cdots      \\
+\vdots  & \cdots \\
+0       & \cdots      
+\end{pmatrix} \right)_{1,1} = \phi_1^2 + \phi_2 \\
+f_{11}^3 &= (\bm{F}^2 \bm{F})_{1,1} = \left( \begin{pmatrix}
+\phi_1^2 + \phi_2  & \phi_1 \phi_2 + \phi_3    & \cdots    & \phi_1 \phi_{p-1} + \phi_p    & \phi_1 \phi_p    \\
+\vdots       & \vdots         & \vdots    & \vdots         & \vdots
+\end{pmatrix} \begin{pmatrix}
+\phi_1  & \cdots \\
+1       & \cdots      \\
+0       & \cdots      \\
+\vdots  & \cdots \\
+0       & \cdots      
+\end{pmatrix} \right)_{1,1} = \phi_1^3 + 2\phi_1\phi_2 + \phi_3 \\
+&\vdots
+\end{align*}
+
+
+It is easy to see how the number of terms of $f_{11}^n$ blows up as $n$ increases. This is why it is often easier to reason with the vector-valued form of the system as shown in Equation \ref{eq:p-order-j-horizon}. If we want to get any kind of intuition for how the previous value we observe of a process may influence future values, it is worthwhile to work more with this vector-valued representation because it can provide analytical solutions for these influences.
+
+If all of the eigenvalues of $\bm{F}$ are distinct, then we can write
+
+\begin{align*}
+\bm{F} = \bm{T} \bm{\Lambda} \bm{T}^{-1} \leftrightarrow \bm{F}^j = \bm{T} \bm{\Lambda}^j \bm{T}^{-1}
+\end{align*}
+
+\noindent where $\bm{\Lambda}$ is a diagonal matrix of eigenvalues of $\bm{F}$. After some algebraic manipulations, we find that
+
 \[
-y_{t+j} = f_{11}^{j+1} y_{t-1} + f_{12}^{j+1} y_{t-2} + \cdots + f_{1p}^{j+1} y_{t-p} + w_{t+j} + f_{11} w_{t+j-1} + \cdots + f_{11}^j w_t
+\frac{\partial y_{t+j}}{\partial w_t} = c_1 \lambda_1^j + \cdots + c_p \lambda_p^j
 \]
 
+\noindent where $\lambda_k$ are the eigenvalues of $\bm{F}$ and $c_1 + \cdots + c_p = 1$. We can see that a similar exponential decay in the effect of the shock $w_t$ occurs for a p\textsuperscript{th}-order difference equations as for a first-order. Multiple lags do not get around the linearity of the system, which always leads to the effect of a shock either growing or decaying exponentially and monotonically over time.
+
+\chapter{Lag Operators}
+
+This chapter is essentially a distillation of Hamilton's \cite{hamilton1994time} chapter of the same name.
+
+The lag operator $L$ is a convenient notational tool that allows difference equations and their properties to be expressed in elegant ways. For example, it allows us to write a first-order difference equation in the following equivalent ways,
+
+\begin{align*}
+y_t &= \phi y_{t-1} + w_t \\ 
+&\updownarrow \\ 
+y_t &= \phi L y_t + w_t \\ 
+&\updownarrow \\ 
+(1 - \phi L) y_t &= w_t \\
+&\updownarrow \\ 
+(1 + \phi L + \phi^2 L^2 + \cdots + \phi^t L^t)(1 - \phi L) y_t &= (1 + \phi L + \phi^2 L^2 + \cdots + \phi^t L^t)w_t \\
+&\updownarrow \\ 
+(1 - \phi^{t+1} L^{t+1}) y_t &= (1 + \phi L + \phi^2 L^2 + \cdots + \phi^t L^t)w_t
+\end{align*}
+
+There are two things to note about the last line here. First, that it is equivalent to Equation \ref{eq:first-order-j-horizon} with $t=0$ and $j=t$. A second, if $|\phi|<1$, as $t$ grows large, $(1 - \phi^{t+1} L^{t+1}) y_t \approx y_t$. So, we can define a new operator
+
+\[
+(1 - \phi L)^{-1} = \lim_{t \rightarrow \infty} (1 + \phi L + \cdots + \phi^t L^t)
+\]
+
+\noindent and write 
+
+\[
+(1 - \phi L) y_t = w_t \leftrightarrow y_t = (1 - \phi L)^{-1} w_t
+\]
+
+Note that it is only possible to express the process this way if $|\phi|<1$.
+
+If we have a p-\textsuperscript{th} order difference equation, we can write 
+
+\begin{align*}
+y_t &= \phi_1 y_{t-1} + \cdots + \phi_p y_{t-p} + w_t \\
+&\updownarrow \\
+(1 - \phi_1 L - \cdots - \phi_p L^p) y_t &= w_t
+&\updownarrow \\
+(1 - \lambda_1 L) * \cdots * (1 - \lambda_p L) y_t = w_t
+\end{align*}
+
+Finding the $\lambda_k$ values is similar to factoring any other polynomial, and in fact it is the identical operation of find the eigenvalues of $\bm{F}$ in Equation \ref{eq:p-order-j-horizon}. Given this symmetry, if all of the eigenvalues found lie within the unit circle, then the system is stable, and we can write 
+
+\[
+y_t = (1 - \lambda_1 L)^{-1} * \cdots * (1 - \lambda_p L)^{-1} w_t
+\]
+
+\noindent After some involved algebra, we also find, unsurprisingly, that the effect of a shock $w_t$ at some horizon $j$ is the same as well.
+
+\chapter{Stationary ARMA Processes}
+
+This chapter is essentially a distillation of Hamilton's \cite{hamilton1994time} chapter of the same name.
+
+A process $Y_t$ is \textbf{weakly stationary} if 
+
+\begin{align*}
+\mathbb{E}(Y_t) &= \mu && \forall t \\
+\mathbb{E}[(Y_t - \mu)(Y_{t-j} - \mu)] &= \gamma_j && \forall t, j
+\end{align*}
+
+A process $Y_t$ is \textbf{strongly stationary} if for any values $j_1, ..., j_n$ the joint distribution of $(Y_t, Y_{t+j_1}, ..., Y_{t+j_n})$ only depends on the dates separating $j_1, ..., j_n$ and not on $t$.
+
+A process $Y_t$ is \textbf{ergodic} for a certain characteristic (its mean, second moment, etc) if observing that time series over a long period of time allows you to make claims about that characteristic at a point in time. For example, for a time series, we never actually observe the processes repeatedly at any specific time. This would normally make it impossible to say what its mean is at any point in time. If the time series was ergodic for the mean, then we can say that a mean estimated from sufficient observations of a single time series across time is also a good estimate of the mean at any point in time.
+
+\chapter{Notes to include}
+
+\section{state space models - local level model}
+
+two main assumptions are mentioned: the authors will assume normality or, when normality is not assumed, minimum variance linear unbiased estimation. I'm assuming the latter is BLUE. I have never thought that assuming normality and assuming BLUE were somehow solutions to the same problem. That's interesting.
+
+A basic general time series model can be represented by 
+
+\[
+y_t = \mu_t + \gamma_t + \epsilon_t
+\]
+
+\begin{itemize}
+    \item $y_t \in \{y_1, ..., y_n\}$, the observations
+    \item $\mu_t$, trend (slowly varying, the state)
+    \item $\gamma_t$, seasonal (periodic)
+    \item $\epsilon_t$, error disturbance
+\end{itemize}
+
+In state-space time series estimation, we use the observations to make inferences about the state.
+
+In general, when creating a state space model, we think about how to model $\mu_t$ and $\gamma_t$. A more specific, but still applicable model that illustrates this is the following random walk model known as a ``local level model''
+
+\begin{align*}
+y_t &= \alpha_t + \epsilon_t, &&\epsilon_t \sim N(0, \sigma_\epsilon^2), \\
+\alpha_{t+1} &= \alpha_t + \eta_t, &&\eta_t \sim N(0, \sigma_\eta^2), \\
+&   &&\epsilon_t \perp \eta_t.
+\end{align*}
+
+\noindent Here, the state is $\alpha_t$, and there is no seasonal component. The error component $\epsilon_t$ of $y_t$ differs from other representations of random walks in that it has a purely contemporaneous effect; it does not accumulate over time, the shocks $\eta_t$ to the state $\alpha_t$ do. It is as if we have a random walk with an extra disturnace term.
+
+Additionally, we also assume $\alpha_1 \sim N(a_1, P_1)$, and that $a_1, P_1, \sigma_\epsilon^2, \sigma_\eta^2$ are known.
+
+Since we are assuming a normal distribution for our fundamental variables and paramters, would could obtain closed form solutions for the moments of $y_t$ at any time $t$, but this is intractable as $n$ grows. This is why we use the technique known as filtering.
+
+\subsection{filtering}
+
+Assume
+
+\begin{itemize}
+    \item $Y_{t-1} = (y_1, ..., y_{t-1})'$ for $t=2, 3, ..., n$.
+    \item $\alpha_t | Y_{t-1} \sim N(a_t, P_t)$, where $a_t, P_t$ are known. 
+    \item $\alpha_t | Y_t \sim N(a_{t|t}, P_{t|t})$.
+    \item $\alpha_{t+1} | Y_t \sim N(a_{t+1}, P_{t+1})$. 
+\end{itemize}
+
+The first thing that jumps out is that $\alpha_t$ is always unknown. We make guesses about them by estimating $a_t$ and $P_t$. We fill focus on two estimates involving the state of the system, a one-step ahead forecast $a_{t+1}$ and a ``filtered-estimator'' $a_{t|t}$ of the current state $\alpha_t$. Both estimates are made using information at time $t$, $Y_t$.
+
+Filtering makes use of the one-step ahead prediction error of $y_t$, $v_t = y_t - a_t$. Some important moments of this prediction error are
+
+\begin{align*}
+\mathbb{E}(v_t|Y_{t-1}) &= \mathbb{E} (\alpha_t + \epsilon_t - a_t | Y_{t-1}) = a_t - a_t = 0, \\
+Var(v_t|Y_{t-1}) &= Var (\alpha_t + \epsilon_t - a_t | Y_{t-1}) = P_t + \sigma_\epsilon^2, \\
+\mathbb{E}(v_t|\alpha_t, Y_{t-1}) &= \mathbb{E} (\alpha_t + \epsilon_t - a_t | \alpha_t, Y_{t-1}) = \alpha_t - a_t, \\
+Var(v_t| \alpha_t, Y_{t-1}) &= Var (\alpha_t + \epsilon_t - a_t | \alpha_t, Y_{t-1}) = \sigma_\epsilon^2, 
+\end{align*}
+
+\noindent Remember that at $t-1$, $a_t$ and $P_t$ are known, so $\mathbb{E}(a_t | Y_{t-1}) = 0$ and $Var(a_t | Y_{t-1}) = 0$. We can update our expectations of the state with our prediction error by noticing that $p(\alpha_t | Y_t) = p(\alpha_t | Y_{t-1}, v_t)$ because if $Y_t$ is fixed, then so are both $(Y_{t-1}, y_t)$ and $(Y_{t-1}, v_t)$ because $a_t$ is known at time $t$ and $v_t = y_t - a_t$. Remembering that $p(\cdot)$ is a density function and all of our densities in this example are normal, 
+
+\begin{align*}
+p(\alpha_t | Y_{t-1}, v_t) &= p(\alpha_t, v_t | Y_{t-1})/p(v_t | Y_{t-1}), \\
+&= p(\alpha_t | Y_{t-1}) p(v_t | \alpha_t, Y_{t-1}) /p(v_t | Y_{t-1}), \\
+&= \text{constant} \times \text{exp}\left( \frac{-1}{2} Q \right).
+\end{align*}
+
+\noindent And remember that the normal density function is
+
+\[
+f(x) = \frac{1}{\sigma \sqrt{2\pi}} \text{exp}\left( \frac{-1}{2} \frac{(x-\mu)^2}{\sigma^2} \right)
+\]
+
+\noindent so whatever $Q$ is informs us of $\mu$ and $\sigma$ for the resulting normal distribution of interest, and thus defines it. $Q$ is built from the moments above
+
+\begin{align*}
+Q &= \frac{(\alpha_t - a_t)^2}{P_t} + \frac{(v_t - \alpha_t + a_t)^2}{\sigma_\epsilon^2} - \frac{v_t^2}{(P_t + \sigma_\epsilon^2)} \\
+&= \frac{\alpha_t - \left(a_t +  \dfrac{P_t v_t}{P_t + \sigma_\epsilon^2} \right)}{ \dfrac{P_t \sigma_\epsilon^2}{P_t + \sigma_\epsilon^2}}
+\end{align*}
+
+\noindent so
+
+\[
+p(\alpha_t | Y_{t-1}, v_t) = p(\alpha_t | Y_t) = N\left( a_t + \frac{P_t v_t}{P_t + \sigma_\epsilon^2}, \frac{P_t \sigma_\epsilon^2}{P_t + \sigma_\epsilon^2} \right)
+\]
+
+\noindent and we defined $p(\alpha_t | Y_t) = N(a_{t|t}, P_{t|t})$ so
+
+\begin{align*}
+a_{t|t} &= a_t + \frac{P_t v_t}{P_t + \sigma_\epsilon^2}, \\
+P_{t|t} &= \frac{P_t \sigma_\epsilon^2}{P_t + \sigma_\epsilon^2},
+\end{align*}
+
+\noindent are respectively the filter estimate of the current state $\alpha_t$, which is the most up-to-date expected value of the current state, and our most up-to-date quantification of how far away from this expectation the actual state may be (i.e. the most up to date variance of the state).
+
+This up-to-date distribution of the current state is different from the unupdated verion, $p(\alpha_t | Y_{t-1}) = N(a_t, P_t)$. To understand this difference, we first need to understand the term $P_t + \sigma_\epsilon^2$. This is the total variance of our model given the information we have at time $t-1$, which is the same as the variance of our prediction error conditional on that same information,
+
+\[
+Var(y_t | Y_{t-1}) = Var(v_t | Y_{t-1}) = Var(\alpha_t + \epsilon_t | Y_{t-1}) = P_t + \sigma_\epsilon^2.
+\]
+
+\noindent Thus
+
+\[
+\frac{P_t}{P_t + \sigma_\epsilon^2}
+\]
+
+\noindent represents how much of our prediction error is likely due to changes in the underlying state. This is the scale factor on the prediction error. It says that because a part of every observation is due to noise, we don't take every prediciton error 100\% seriously. Instead, we adjust our expectation of the state according to how much we think a prediction deviated from an observation because the state unexpectedly changed, rather than because contemporaneous noise was especially high. How much we anticipate state to unexpectedly change is $P_t$, and we update scale by
+
+\[
+\frac{\sigma_\epsilon^2}{P_t + \sigma_\epsilon^2},
+\]
+
+\noindent the share of noise in prediction error variance. Note that this always increases our certainty about the state, which makes sense given we are adding new information to the model. We may not increase our certainty very much, however, if our observations and hence prediction errors are very noisey.
+
+$P_t$ is calculated with each observation as a part of the one-step ahead forecast process, and obsensibly $\sigma_\epsilon^2$ is updated as well even though it is assumed to be stationary. This forecast process appears to be a part of both fitting the model as well as forecasting itself.
+
+To make our one-step ahead forecast for the state of our system, we go back to our state model,
+
+\[
+a_{t+1} = \mathbb{E}(\alpha_t + \eta_t) = \mathbb{E}(\alpha_t | Y_t) = a_{t|t} = a_t + \frac{P_t v_t}{P_t + \sigma_\epsilon^2}
+\]
+
+\noindent and
+
+\[
+P_{t+1} = Var(\alpha_t + \eta_t | Y_t) = P_{t|t} + \sigma_\eta^2 = \frac{P_t \sigma_\epsilon^2}{P_t + \sigma_\epsilon^2} + \sigma_\eta^2.
+\]
+
+\noindent Because we have a random walk, our best forecast of the state's mean is our most up-to-date expectation, and the variance of that forecast is our most up-to-date variance of the state plus our current understanding of how that state's random walk evolves.
+
+Perhaps unsurprisingly, one of the scaling factors introduced above plays a special role in filtering, 
+
+\begin{align*}
+F_t &= Var(v_t | Y_{t-1}) = P_t + \sigma_\epsilon^2, & K_t &= \frac{P_t}{F_t}.
+\end{align*}
+
+\noindent The \textbf{Kalman gain} $K_t$ is the scaling factor on the prediction errors. We can succintly write the rules for updating from $t$ to $t+1$ as
+
+\begin{align*}
+v_t &= y_t - a_t, & F_t &= P_t + \sigma_\epsilon^2, \\
+a_{t|t} &= a_t + K_t v_t, & P_{t|t} &= P_t(1-K_t), \\
+a_{t+1} &= a_t + K_t v_t, & P_{t+1} &= P_t (1-K_t) + \sigma_\eta^2.
+\end{align*}
+
+\bibliographystyle{plain}
+\bibliography{book}
 \end{document}
