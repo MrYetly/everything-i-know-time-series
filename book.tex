@@ -2,6 +2,20 @@
 \usepackage{amsmath, amssymb, amsthm}
 \usepackage{bm}
 
+\usepackage[most]{tcolorbox}
+
+\newtcolorbox{aside}[1][]{
+  colback=black!3!white,
+  colframe=black!15!white,
+  sharp corners,
+  boxrule=0.5pt,
+  left=10pt, right=10pt, top=8pt, bottom=8pt,
+  title=\textbf{Aside: #1},
+  coltitle=black,
+  fonttitle=\small,
+  fontupper=\small\RaggedRight
+}
+
 \title{Everything I Know \\About Time Series}
 \author{Ivan Anich}
 
@@ -275,7 +289,7 @@ Var(v_t|Y_{t-1}) &= Var (\alpha_t + \epsilon_t - a_t | Y_{t-1}) = P_t + \sigma_\
 Var(v_t| \alpha_t, Y_{t-1}) &= Var (\alpha_t + \epsilon_t - a_t | \alpha_t, Y_{t-1}) = \sigma_\epsilon^2, 
 \end{align*}
 
-\noindent Remember that at $t-1$, $a_t$ and $P_t$ are known, so $\mathbb{E}(a_t | Y_{t-1}) = 0$ and $Var(a_t | Y_{t-1}) = 0$. We can update our expectations of the state with our prediction error by noticing that $p(\alpha_t | Y_t) = p(\alpha_t | Y_{t-1}, v_t)$ because if $Y_t$ is fixed, then so are both $(Y_{t-1}, y_t)$ and $(Y_{t-1}, v_t)$ because $a_t$ is known at time $t$ and $v_t = y_t - a_t$. Remembering that $p(\cdot)$ is a density function and all of our densities in this example are normal, 
+\noindent Remember that at $t-1$, $a_t$ and $P_t$ are known, so $\mathbb{E}(a_t | Y_{t-1}) = a_t$ and $Var(a_t | Y_{t-1}) = 0$. We can update our expectations of the state with our prediction error by noticing that $p(\alpha_t | Y_t) = p(\alpha_t | Y_{t-1}, v_t)$ because if $Y_t$ is fixed, then so are both $(Y_{t-1}, y_t)$ and $(Y_{t-1}, v_t)$ because $a_t$ is known at time $t$ and $v_t = y_t - a_t$. Remembering that $p(\cdot)$ is a density function and all of our densities in this example are normal, 
 
 \begin{align*}
 p(\alpha_t | Y_{t-1}, v_t) &= p(\alpha_t, v_t | Y_{t-1})/p(v_t | Y_{t-1}), \\
@@ -331,12 +345,12 @@ Var(y_t | Y_{t-1}) = Var(v_t | Y_{t-1}) = Var(\alpha_t + \epsilon_t | Y_{t-1}) =
 
 \noindent the share of noise in prediction error variance. Note that this always increases our certainty about the state, which makes sense given we are adding new information to the model. We may not increase our certainty very much, however, if our observations and hence prediction errors are very noisey.
 
-$P_t$ is calculated with each observation as a part of the one-step ahead forecast process, and obsensibly $\sigma_\epsilon^2$ is updated as well even though it is assumed to be stationary. This forecast process appears to be a part of both fitting the model as well as forecasting itself.
+$P_t$ is calculated with each observation as a part of the one-step ahead forecast process, and $\sigma_\epsilon^2$ is assumed to be known. This forecast process appears to be a part of both fitting the model as well as forecasting itself.
 
 To make our one-step ahead forecast for the state of our system, we go back to our state model,
 
 \[
-a_{t+1} = \mathbb{E}(\alpha_t + \eta_t) = \mathbb{E}(\alpha_t | Y_t) = a_{t|t} = a_t + \frac{P_t v_t}{P_t + \sigma_\epsilon^2}
+a_{t+1} = \mathbb{E}(\alpha_t + \eta_t | Y_t) = \mathbb{E}(\alpha_t | Y_t) = a_{t|t} = a_t + \frac{P_t v_t}{P_t + \sigma_\epsilon^2}
 \]
 
 \noindent and
@@ -360,6 +374,93 @@ v_t &= y_t - a_t, & F_t &= P_t + \sigma_\epsilon^2, \\
 a_{t|t} &= a_t + K_t v_t, & P_{t|t} &= P_t(1-K_t), \\
 a_{t+1} &= a_t + K_t v_t, & P_{t+1} &= P_t (1-K_t) + \sigma_\eta^2.
 \end{align*}
+
+\subsection{Forecast errors}
+
+The forecast errors $v_t$ and their variance $F_t$ are used in a variety of ways in state space modeling because they represent the new information we learn about $y_t$ that could not be predicted given our past observations. The forecast errors are often referred to as innovations because they represent new information in this way.
+
+The forecast errors are mutually independent. To see this, start with the joint probability of a set of observations and use the definition of a marginal distribution
+
+\[
+p(y_1, ..., y_n) = p(y_1) \prod_{t = 2}^n p(y_t | Y_{t-1}).
+\]
+
+\noindent To understand what happens from here, we need to understand how to apply a change of variables.
+
+
+\begin{aside}[Change of Variable]
+    Let's start with the one dimensional case. If we have a random variable $X$ with density function $f_X(x)$ and we wish to find the density of another random variable $Y = g(X)$, denoted $f_Y(y)$, and if $g$ is strictly monotonic, then we can find it with
+
+    \[
+    f_Y(y) = f_X(g^{-1}(y)) \left| \frac{d}{dy} g^{-1}(y) \right|.
+    \]
+
+    The absolute value is a scaling factor derived from the fact that, given the relationship $Y = g(X)$, the probability that $Y$ lies in a certain image must equal the probability that $X$ lies in the associated pre-image (note the proof of the transition from the first to second line requires knowledge of Real Analysis):
+
+    \begin{align*}
+    \mathbb{P}[Y \in [y, y+dy]] &= \mathbb{P}[X\in[x, x+dx]] \\
+    f_Y(y)|dy| &= f_X(x)|dx| \\
+    f_Y(y) &= f_X(x) \left| \frac{dx}{dy} \right| \\
+    f_Y(y) &= f_X(g^{-1}(y)) \left| \frac{d}{dy} g^{-1}(y) \right| 
+    \end{align*}
+
+    In the multivariate (i.e. vector) case we have
+
+    \[
+    f_{\bm{Y}}(\bm{y}) = f_{\bm{X}}(g^{-1}(\bm{y})) \left| \text{det}(J_{g^{-1}}(\bm{y}))\right|
+    \]
+\end{aside}
+
+Let $v_t = g(y_t) = y_t - a_t$ so $y_t = g^{-1}(v_t) = v_t + a_t$ and $\frac{d g^{-1}(v_t)}{d v_t} = 1$, and letting $\bm{y}_t$ and $\bm{v}_t$ denote the random variables of which $y_t$ and $v_t$ are observations, we can then write 
+
+\begin{align*}
+p(y_1, ..., y_n) &= f_{\bm{y}_1}(y_1) \prod_{t=2}^n f_{\bm{y}_t} (y_t | Y_{t-1}) \\
+&= f_{\bm{y}_1}(v_1 + a_1) \prod_{t=2}^n f_{\bm{y}_t} (v_t + a_t | Y_{t-1}) \\
+&= f_{\bm{v}_1}(v_1) \prod_{t=2}^n f_{\bm{v}_t} (v_t| Y_{t-1})
+\end{align*}
+
+The second equality holds simply because $y_t = v_t + a_t$; we have not truly changed variables yet because the underlying distribution is still that of $y_t$. In the third equality, we change to the variable to $v_t$. This has an especially simply form
+
+\begin{align*}
+f_{\bm{v}_1}(v_1) &= f_{\bm{y}_1} (v_1 + a_1),  \\
+f_{\bm{v}_t \mid \bm{Y}_{t-1}}(v_t \mid Y_{t-1}) &= f_{\bm{y}_t \mid \bm{Y}_{t-1}} (v_t + a_t \mid Y_{t-1}) \text{ when } t>1,
+\end{align*}
+
+\noindent because $y_t$ is just a shift of $v_t$, and the shift $a_t$ is known conditional on $Y_{t-1}$. It may seem weird to claim that two distributions that are shifts of eachother are equal. Bear in mind, however, that the functions in the equations above have become functions of $v_t$, so it is not that we are somehow claiming that $f_{\bm{v}_t \sim \bm{Y}_{t-1}}$ perfetly overlaps $f_{\bm{y}_t \sim \bm{Y}_{t-1}}$; we are saying that the probability density of $\bm{v}_t$ taking on a certain value can be equivalently expressed in terms of either $f_{\bm{v}_t \sim \bm{Y}_{t-1}}$ or $f_{\bm{y}_t \sim \bm{Y}_{t-1}}$ when the input to the latter is shifted appropriately; this is simply the core result of the change of variable theorem, applied here.
+
+The last thing to do is to show that
+
+\[
+f_{\bm{v}_t \mid \bm{Y}_{t-1}}(v_t \mid Y_{t-1}) = f_{\bm{v}_t}(v_t)
+\]
+
+We already know that $v_t \sim N(0, F_t)$, so any conditional dependence on $Y_{t-1}$ must come through $F_t$. But 
+
+\[
+F_t = P_t + \sigma_\epsilon^2
+\]
+
+\noindent and 
+
+\[
+P_{t+1} = \frac{P_t \sigma_\epsilon^2}{P_t + \sigma_\epsilon^2} + \sigma_\eta^2
+\]
+
+\noindent where $\sigma_\epsilon^2$, $\sigma_\eta^2$, and $P_1$ are known, so the evolution of $F_t$ is \textit{deterministic} because the evolution of $P_t$ is deterministic. A deterministic process does not depend on any random variable, so
+
+\[
+f_{\bm{v}_t \mid \bm{Y}_{t-1}}(v_t \mid Y_{t-1}) = f_{\bm{v}_t}(v_t).
+\]
+
+\noindent This means that we can finally write
+
+\begin{align*}
+p(y_1, ..., y_n) &= f_{\bm{v}_1}(v_1) \prod_{t=2}^n f_{\bm{v}_t} (v_t| Y_{t-1}) \\
+&= \prod_{t=1}^n f_{\bm{v}_t} (v_t) \\
+&= p(v_1, ..., v_n)
+\end{align*}
+
+\noindent and we have shown that the prediction errors are mutually independent (we could technically write that last line earlier, but I wrote it here to cement the point).
 
 \bibliographystyle{plain}
 \bibliography{book}
