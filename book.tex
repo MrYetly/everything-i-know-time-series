@@ -462,6 +462,179 @@ p(y_1, ..., y_n) &= f_{\bm{v}_1}(v_1) \prod_{t=2}^n f_{\bm{v}_t} (v_t| Y_{t-1}) 
 
 \noindent and we have shown that the prediction errors are mutually independent (we could technically write that last line earlier, but I wrote it here to cement the point).
 
+We now show that the forecast errors can be computed by a Cholesky decomposition. To recap, our  updating rules are 
+
+\begin{align*}
+v_t &= y_t - a_t, & F_t &= P_t + \sigma_\epsilon^2, \\
+a_{t|t} &= a_t + K_t v_t, & P_{t|t} &= P_t(1-K_t), \\
+a_{t+1} &= a_t + K_t v_t, & P_{t+1} &= P_t (1-K_t) + \sigma_\eta^2, \\
+& & K_t &= \frac{P_t}{F_t}.
+\end{align*}
+
+\noindent We can recursively solve for the forecast errors given $a_1$ and the observations $Y_n$:
+
+\begin{align*}
+v_1 &= y_1 - a_1 \\
+v_2 &= y_2 - a_2 = y_2 - (a_1 + K_1 v_1) &&= y_2 - a_1 - K_1 (y_1 - a_1) \\
+v_3 &= y_3 - a_3 = y_3 - (a_2 + K_2 v_2) &&= y_3 - a_2 - K_2 (y_2 - a_1 - K_1 (y_1 - a_1)) \\
+& &&= y_3 - (a_1 + K_1 v_1) - K_2 (y_2 - a_1) + K_2 K_1 (y_1 - a_1) \\
+& &&= y_3 - a_1 - K_1 (y_1 - a_1) - K_2 (y_2 - a_1) + K_2 K_1 (y_1 - a_1) \\
+& &&= y_3 - a_1 - K_2 (y_2 - a_1) - K_1 (y_1 - a_1) + K_2 K_1 (y_1 - a_1) \\
+& &&= y_3 - a_1 - K_2 (y_2 - a_1) - K_1 (y_1 - a_1) (1 - K_2) \\
+& &&= y_3 - a_1 - K_2 (y_2 - a_1) - K_1(1 - K_2)(y_1 - a_1)
+\end{align*}
+
+\noindent We can represent this in matrix form,
+
+\[
+v = C(Y_n - 1a_1), \text{ with } v = (v_1 \cdots v_n)'
+\]
+
+The critical part of the above is the $n \times n$ matrix C, whose structure we inductively describe above,
+
+\begin{align*}
+C &= \begin{pmatrix}
+1 & 0 & 0 & & 0 \\
+c_{21} & 1 & 0 && 0 \\
+c_{31} & c_{32} & 1 && 0 \\
+ & & & \ddots & \vdots \\
+c_{n1} & c_{n2} & c_{n3} & \cdots & 1
+\end{pmatrix}, \\
+&\left. 
+    \begin{aligned}
+    c_{i, i-1} &= -K_{i-1}, \\
+    c_{ij} &= -(1 - K_{i-1})(1 - K_{i-2}) \cdots (1 - K_{j+1}) K_j
+    \end{aligned}
+\right\} \quad \text{ for } \begin{aligned}
+i&>j \\
+i &=2, ...., n \\
+j &= 1, ..., i-2
+\end{aligned}
+\end{align*}
+
+The indexes of this last line are a bit hard to understand, so let's apply them to the closed form of $v_3$ we derived above,
+
+\[
+v_3 = y_3 - a_1 - K_2 (y_2 - a_1) - \underbrace{K_1(1 - K_2)(y_1 - a_1)}_{c_{31}}.
+\]
+
+\noindent Since we are always in the lower triangular half of the matrix, we essentially create the coefficient on $y_1 - a_1$ by factors from right to left, ``counting'' from $j$ to $i - 1$. We can then state
+
+\[
+v \sim N(0, C\Omega C')
+\]
+
+\noindent where $\Omega = \text{Var}(Y_n)$ as define by the autocovariance structure of the local level model we have been working with.
+
+Now, we also know that $\text{Var}(v_t) = F_t$ and $\text{Cov}(v_t, v_s) = 0$ for $s\neq t$, so we can also write
+
+\[
+v \sim N(0, F)
+\]
+
+\noindent where $F$ is a diagonal matrix whose non-zero elements are $F_1, ..., F_n$. So, we can say
+
+\[
+F = C \Omega C',
+\]
+
+\noindent which is exactly the form of a Cholesky decomposition: the representation of a positive semidefinite matrix $\Omega$ as a diagonal matrix $F$. It is also userful to notice that $\Omega^{-1} = C' F^{-1} C$, which should be familiar with Cholesky decomposition for OLS estimation.
+
+Next we define the state estimation error,
+
+\[
+x_t = \alpha_t - a_t.
+\]
+
+Apparently $\text{Var}(x_t) = P_t$, but I don't see how this is is true unconditionally, so let's try and derive it.
+
+\begin{align*}
+\text{Var}(x_t) &= \text{Var}(\alpha_t - a_t) = \text{Var}(\alpha_t) + \text{Var}(a_t) \\
+&= \mathbb{E}(\alpha_t^2) - \mathbb{E}(\alpha_t)^2 + \mathbb{E}(a_t^2) - \mathbb{E}(a_t)^2 \\
+&= \mathbb{E}(\mathbb{E}(\alpha_t^2 \mid Y_{t-1})) - \mathbb{E}(\mathbb{E}(\alpha_t \mid Y_{t-1}))^2 + \mathbb{E}(\mathbb{E}(a_t^2 \mid Y_{t-1})) - \mathbb{E}(\mathbb{E}(a_t \mid Y_{t-1}))^2 \\
+&= \mathbb{E}(\mathbb{E}(\alpha_t^2 \mid Y_{t-1}) - \mathbb{E}(\alpha_t \mid Y_{t-1})^2) \\
+&= \mathbb{E}(\text{Var}(\alpha_t \mid Y_{t-1})) \\
+&= \mathbb{E}(P_t) \\
+&= P_t
+\end{align*}
+
+\noindent Again, the last line holds because $P_t$ is a deterministic process given that $P_1$, $\sigma_\epsilon^2$, and $\sigma_\eta^2$ are known. The fourth line holds because as of $t-1$, $a_t$ is known. The use of the law of iterated expectations seems a little bit like magic: how can we go from being interested in the unconditional variance of our state $\alpha_t$ and our state forecast $a_t$ to being satisfied with a statement that depends on knowledge as of $t-1$? Unconditionally, our state and forecast could be \textit{anything}, right? Well, I think the answer comes down to the fact that $P_t$ holds a lot of information. The error variances $\sigma_\epsilon^2$ and $\sigma_\eta^2$ that dictate its evolution are known \textit{because} we know what our model is and observations are (I'm still now sure how these are known given those, but that is what the book states). So, while $P_t$ is defined conditionally ($\alpha_t \mid Y_{t-1} \sim N(a_t, P_t)$), its true value is \textit{not conditional}. This is why we can know what the unconditional variation in $\alpha_t$ and $x_t$ by conditioning on $Y_{t-1}$ in an application of the law of iterated expectations.
+
+Given the definition of $x_t$, we can express our forecast error in terms of our state estimation error and state update rules for our errors between $t$ and $t+1$ that are analogous to the update rules for our model,
+
+\begin{align*}
+v_t &= y_t - a_t = \alpha_t + \epsilon_t - a_t = x_t + \epsilon_t \\
+x_{t+1} &= \alpha_{t+1} - a_{t+1} \\
+&= \alpha_t + \eta_t - a_t - K_t v_t \\
+&= x_t + \eta_t - K_t(x_t + \epsilon_t) \\
+&= L_t x_t + \eta_t - K_t \epsilon_t.
+\end{align*}
+
+\noindent where $L_t = 1- K_t$. So, our state error next period is the state error of this period attenuated by the share of the variance of noise in our observations in total variance of our observations, $1-K_t = \sigma_\epsilon^2/(P_t + \sigma_\epsilon^2)$, adjusting for the random walk of our state and the noise in our observation this period. Note that the random walk of our state directly affects state esetimation error next period, becauase it is unpredictable, while the noise in the observation this period affects it via the Kalman gain, $K_t$; this is because the Kalman gain describes how much of the observed variance is due to variation in our state as opposed to noise in the observations, so said noise's affect on state estimation error is reduced in proportion to it: only part of the noise this period is allowed to affect our state estimation, so only a part of it should affect our state estimation error. 
+
+%Why the negative sign?
+
+\subsection{State Smoothing}
+
+So, how do we estimate $\alpha_1, ..., \alpha_n$ given our sample $Y_n$? We can state the following
+
+\begin{align*}
+    \alpha_t \mid Y_n &\sim N(\hat{\alpha}_t, V_t), \\
+    \hat{\alpha}_t &= \mathbb{E}(\alpha_t \mid Y_n), &&\text{the smoothed state}, \\
+    V_t &= \text{Var}(\alpha_t \mid Y_n), && \text{smoothed state variance}.
+\end{align*}
+
+\noindent Also, remember the following results proved above
+
+\begin{enumerate}
+    \item All forecast errors $v_1, ..., v_n$ are mutually independent.
+    \item The ``future'' forecast errors $v_t, ..., v_n$ are independent of past observations $y_1, ..., y_{t-1}$ and have zero mean.
+    \item $Y_n$ is fixed if and only if $Y_{t-1}$ and $v_t, ..., v_n$ are fixed.
+\end{enumerate}
+
+%Why can't we say all forecast errors are zero mean?
+
+\noindent Then also we know in the bivariate normal case, we can state for two such variables $x$ and $y$
+
+\begin{align*}
+\mathbb{E}(x \mid y) &= \mu_x + \dfrac{\sigma_{xy}}{\sigma_y^2} (y - \mu_y), && \text{Var}(x \mid y) = \sigma_x^2 + \dfrac{\sigma_{xy}^2}{\sigma_y^2},
+\end{align*}
+
+\noindent where $\frac{\sigma_{xy}}{\sigma_y^2}$ is the theoretical value of the OLS coefficient of $x$ on $y$. If we note that 
+
+\[
+\hat{\alpha}_t = \mathbb{E}(\alpha_t \mid Y_n)
+\]
+
+\noindent then we can extend this to the multivariate case and apply it to our local level model:
+
+\begin{align*}
+p(\alpha_t, Y_n) &= p(Y_n) p(\alpha_t \mid Y_n) \\
+f_{\alpha_t, Y_n} (\alpha_t, Y_n) &= f_{Y_n} (Y_n) f_{\alpha_t \mid Y_n} (\alpha_t \mid Y_n)  \\
+\frac{f_{\alpha_t, Y_n} (\alpha_t, Y_n)}{f_{Y_n} (Y_n)} &= f_{\alpha_t \mid Y_n} (\alpha_t \mid Y_n)
+\end{align*}
+
+\noindent The multivariate normal distribution is
+
+\[
+f_{\bm{X}} (x_1, ..., x_n) = \frac{1}{\sqrt{(2\pi)^n |\bm{\Sigma}|}} \text{exp} \left(\frac{-1}{2} (\bm{x} - \bm{\mu_x})' \bm{\Sigma}^{-1} (\bm{x} - \bm{\mu_x}) \right) = N(\bm{\mu_x}, \bm{\Sigma})
+\]
+
+\noindent and we have for our local level model
+
+\begin{align*}
+Y_n &\sim N(\bm{1}a_1, \Omega) \\
+\alpha_t = y_t - \epsilon_t &\sim N(a_1, \sigma_\epsilon^2 + (t-1)\sigma_\eta^2 + \sigma_\epsilon^2)
+\end{align*}
+
+%surely somewhere here I can express something in terms of P_t?
+
+\noindent or
+
+\begin{align*}
+p(\alpha_t \mid Y_{t-1}, v_t, ..., v_n) = 
+\end{align*}
+
 \bibliographystyle{plain}
 \bibliography{book}
 \end{document}
