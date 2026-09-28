@@ -614,12 +614,6 @@ f_{\alpha_t, Y_n} (\alpha_t, Y_n) &= f_{Y_n} (Y_n) f_{\alpha_t \mid Y_n} (\alpha
 \frac{f_{\alpha_t, Y_n} (\alpha_t, Y_n)}{f_{Y_n} (Y_n)} &= f_{\alpha_t \mid Y_n} (\alpha_t \mid Y_n)
 \end{align*}
 
-\noindent The multivariate normal distribution is
-
-\[
-f_{\bm{X}} (x_1, ..., x_n) = \frac{1}{\sqrt{(2\pi)^n |\bm{\Sigma}|}} \text{exp} \left(\frac{-1}{2} (\bm{x} - \bm{\mu_x})' \bm{\Sigma}^{-1} (\bm{x} - \bm{\mu_x}) \right) = N(\bm{\mu_x}, \bm{\Sigma})
-\]
-
 \noindent and we have for our local level model
 
 \begin{align*}
@@ -627,13 +621,117 @@ Y_n &\sim N(\bm{1}a_1, \Omega) \\
 \alpha_t = y_t - \epsilon_t &\sim N(a_1, \sigma_\epsilon^2 + (t-1)\sigma_\eta^2 + \sigma_\epsilon^2)
 \end{align*}
 
-%surely somewhere here I can express something in terms of P_t?
+\noindent To understand where this is coming from, note that our model of $y_t$ can be expressed as
 
-\noindent or
+\[
+y_t = a_1 + \sum_{j=1}^{t-1} \eta_j + \epsilon_t
+\]
+
+\noindent because each period we have $\epsilon_t$ and $\eta_t$ but $\eta_t$ only affects the next period, more explicitly
+
+\[
+Y_n = \begin{pmatrix}
+a_1 + \epsilon_1 \\
+a_1 + \eta_1 + \epsilon_2 \\
+a_1 + \eta_1 + \eta_2 + \epsilon_3 \\
+\vdots \\
+a_1 + \sum_{t=1}^{n-1} \eta_t + \epsilon_n
+\end{pmatrix}
+\]
+
+\noindent and so
 
 \begin{align*}
-p(\alpha_t \mid Y_{t-1}, v_t, ..., v_n) = 
+\Omega &= \text{Var}(Y_n) = \mathbb{E} [(Y_n - \mathbb{E}(Y_n))(Y_n - \mathbb{E})'] \\
+&= \begin{pmatrix}
+\text{Var}(y_1) & \text{Cov} (y_1, y_2) & \cdots & \text{Cov}(y_1, y_n) \\
+\text{Cov}(y_2, y_1) & \text{Var}(y_2) & & \\
+\vdots & & \ddots & \\
+\text{Cov}(y_n, y_1) & & & \text{Var}(y_n)
+\end{pmatrix} \\
+&= \begin{pmatrix}
+P_1 + \sigma_\epsilon^2 & P_1 & P_1 & \cdots & P_1 \\
+P_1 & P_1 + \sigma_\eta^2 + \sigma_\epsilon^2 & P_1 + \sigma_\eta^2 & & \\
+P_1 & P_1 + \sigma_\eta^2 & P_1 + 2 \sigma_\eta^2 + \sigma_\epsilon^2 & & \\
+\vdots & & & \ddots & \\
+P_1 & & & & P_1 + (n-1) \sigma_\eta^2 + \sigma_\epsilon^2
+\end{pmatrix}
 \end{align*}
+
+\noindent Note how the variances due to shocks to the random walk enter the elements and where they are absent. They enter when two observations share historical shocks: $\sigma_\eta^2$ is present after the first period, in proportion to the overlap in historical periods (i.e. in proportion to the earlier observations shocks). Also note where variance to the idiosyncratic shocks $\epsilon_t$ appears: only on diagonal elements.
+
+\[
+\begin{pmatrix}
+\alpha_t \\
+Y_n
+\end{pmatrix} \sim N \left( a_t \bm{1}_{n+1}, \begin{pmatrix}
+\text{Var}(\alpha_t) & \text{Cov}(\alpha_t, Y_n') \\
+\text{Cov}(Y_n, \alpha_t) & \text{Var}(Y_n)
+\end{pmatrix} \right)
+\]
+
+\noindent where
+
+\[
+\begin{pmatrix}
+\text{Var}(\alpha_t) & \text{Cov}(\alpha_t, Y_n') \\
+\text{Cov}(Y_n, \alpha_t) & \text{Var}(Y_n)
+\end{pmatrix} = \begin{pmatrix}
+\text{Var}(y_t - \epsilon_t) & \text{Cov}(y_t - \epsilon_t, y_1) & \cdots & \text{Cov}(y_t - \epsilon_t, y_t) & \cdots & \text{Cov}(y_t - \epsilon_t, y_n) \\
+\text{Cov}(y_1, y_t - \epsilon_t) & & & & \\
+\vdots & & & & \\
+\text{Cov}(y_t, y_t - \epsilon_t) & & & \Omega & \\
+\vdots & & & & \\
+\text{Cov}(y_n, y_t - \epsilon_t) & & & & \\
+\end{pmatrix}
+\]
+
+\noindent We are not adding redundant data to the vector $Y_n$ because we are adding the state explicitly, which requires considering the difference between the observation and its error as opposed to just the observation, therefore adding new information to the system. The multivariate normal distribution is
+
+\[
+f_{\bm{X}} (x_1, ..., x_n) = \frac{1}{\sqrt{(2\pi)^n |\bm{\Sigma}|}} \text{exp} \left(\frac{-1}{2} (\bm{x} - \bm{\mu_x})' \bm{\Sigma}^{-1} (\bm{x} - \bm{\mu_x}) \right) = N(\bm{\mu_x}, \bm{\Sigma})
+\]
+
+\noindent so
+
+\[
+f_{\alpha_t, Y_n}(\alpha_t, Y_n) = \text{const.} \times \exp \left( \dfrac{-1}{2} \left( \begin{pmatrix}
+\alpha_t \\
+Y_n
+\end{pmatrix} - a_1 \bm{1}_{n+1}\right)' \begin{pmatrix}
+\text{Var}(\alpha_t) & \text{Cov}(\alpha_t, Y_n') \\
+\text{Cov}(Y_n, \alpha_t) & \Omega
+\end{pmatrix}^{-1} \left( \begin{pmatrix}
+\alpha_t \\
+Y_n
+\end{pmatrix} - a_1 \bm{1}_{n+1} \right)\right)
+\]
+
+\noindent and
+
+\[
+f_{Y_n}(Y_n) = \text{const.} \times \exp \left( 
+    \dfrac{-1}{2} \left( Y_n - a_1 \bm{1}_n \right)' \Omega^{-1} \left( Y_n - a_1 \bm{1}_n \right)
+\right)
+\]
+
+\noindent All the action is taking place in the exponential, so, dropping the $-1/2$,
+
+\begin{align*}
+\text{exponential} &= \left( \begin{pmatrix}
+\alpha_t \\
+Y_n
+\end{pmatrix} - a_1 \bm{1}_{n+1}\right)' \begin{pmatrix}
+\text{Var}(\alpha_t) & \text{Cov}(\alpha_t, Y_n') \\
+\text{Cov}(Y_n, \alpha_t) & \Omega
+\end{pmatrix}^{-1} \left( \begin{pmatrix}
+\alpha_t \\
+Y_n
+\end{pmatrix} - a_1 \bm{1}_{n+1} \right) \\
+& - \left( Y_n - a_1 \bm{1}_n \right)' \Omega^{-1} \left( Y_n - a_1 \bm{1}_n \right)
+\end{align*}
+
+\noindent We want to isolate what equates to the mean of $\alpha_t$. Consequently, we don't really care about the second term being substracted, because it will only affect terms in the final expression that haveelements of $Y_n$, not $\alpha_t$.
 
 \bibliographystyle{plain}
 \bibliography{book}
