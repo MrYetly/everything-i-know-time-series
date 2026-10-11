@@ -594,13 +594,101 @@ So, how do we estimate $\alpha_1, ..., \alpha_n$ given our sample $Y_n$? We can 
 
 %Why can't we say all forecast errors are zero mean?
 
-\noindent Then also we know in the bivariate normal case, we can state for two such variables $x$ and $y$
+\noindent Given this we can state
+
+\[
+\hat{\alpha}_t = \mathbb{E}(\alpha_t \mid Y_n) = \mathbb{E}(\alpha_t \mid Y_{t-1}, v_t, ..., v_n)
+\]
+
+\noindent And note that since $v_t = y_t - a_t = y_t - \mathbb{E}(y_t | Y_{t-1})$, the forecast errors from $t$ on and $Y_{t-1}$ are independent. And since they are independent, the expected value of the state depends on a linear combination of the individual relationships between the state and those variables:
+
+\[
+\hat{\alpha}_t = \mathbb{E}(\alpha_t \mid Y_{t-1}) + \sum_{j=t}^n \dfrac{\text{Cov}(\alpha_t, v_j)}{\text{Var}(v_j)} (v_j - \mathbb{E}(v_j)) = a_t + \sum_{j=t}^n \dfrac{\text{Cov}(\alpha_t, v_j)}{F_j} v_j
+\]
+
+So adding in the rest of the sample adjusts our estimation of the state at time $t$ according to how it changes with future forecast errors: we take our understanding of what happens throughout the sample to refine what the state must have been at any point during the sample.
+
+So, we also know we can express our forecast errors in terms of state estimation errors $x_t$, $v_t = x_t + \epsilon_t$. So, we can write these covariances compactly,
 
 \begin{align*}
-\mathbb{E}(x \mid y) &= \mu_x + \dfrac{\sigma_{xy}}{\sigma_y^2} (y - \mu_y), && \text{Var}(x \mid y) = \sigma_x^2 + \dfrac{\sigma_{xy}^2}{\sigma_y^2},
+\text{Cov}(\alpha_t, v_{t+j}) = \text{Cov}(a_t + x_t, v_{t+j}) &= \text{Cov}(x_t, v_{t+j}) \\
+&= P_t L_t \cdots L_{t+j}
 \end{align*}
 
-\noindent where $\frac{\sigma_{xy}}{\sigma_y^2}$ is the theoretical value of the OLS coefficient of $x$ on $y$. If we note that 
+This result depends on the form of our model, I think (but i'm not sure). Remember, $L_t = 1 - K_t$. So, we can write our smoothed state as
+
+\begin{align*}
+\hat{\alpha}_t &= a_t + P_t r_{t-1} \\
+r_{t-1} &= \frac{v_t}{F_t} + L_t \frac{v_{t+1}}{F_{t+1}} + \cdots + L_t \cdots L_{n-1} \frac{v_n}{F_n}
+\end{align*}
+
+\noindent $r_{t-1}$ is a weighted sum of innovations (forecast errors) after $t-1$. Using this, we can calculate the smoothed state with backwards recursion,
+
+\begin{align*}
+r_{t-1} &= \frac{v_t}{F_t} + L_t r_t \\
+\hat{\alpha}_t &= a_t + P_t r_{t-1} \\
+r_n &= 0
+\end{align*}
+
+Next we will calculate the \textbf{smoothed state variance}, $V_t = \text{Var}(\alpha_t \mid Y_n)$. Again, since $Y_{t-1}$ and the $v_t$s are independent, 
+
+\[
+V_t = \text{Var}(\alpha_t | Y_{t-1}, v_1, ..., v_n) = P_t - \sum_{j=t}^n \frac{\text{Cov}(\alpha_t, v_j)^2}{F_j}.
+\]
+
+\noindent Note the minus sign due to the addition of information. We use the same relation between $x_t$ and $v_t$ to express the covariances above,
+
+\begin{align*}
+V_t &= P_t - P_t^2 N_{t-1} \\
+N_{t-1} &= \frac{1}{F_t} + \frac{L_t^2}{F_{t+1}} + \cdots + \frac{L_t^2 \cdots L_{n-1}^2}{F_n} \\
+N_n &= 0
+\end{align*}
+
+So we can solve for the smoothed state variances through backwards recursion as well,
+
+\begin{align*}
+N_{t-1} &= \frac{1}{F_t} + L_t^2 N_t \\
+V_t &= P_t - P_t^2 N_{t-1} 
+\end{align*}
+
+How do we \textbf{initialize} the Kalman filter, given that we assume that $a_1$ and $P_1$ are known? Start with a diffuse prior: give $a_1$ some arbitrary value and let $P_1 \rightarrow \infty$. We know our model starts out as
+
+\begin{align*}
+v_1 &= y_1 - a_1, & F_1 &=P_1 + \sigma_\epsilon^2
+\end{align*}
+
+\noindent so given our assumptions we can say
+
+\begin{align*}
+a_2 &= a_1 + \frac{P_1}{P_1 + \sigma_\epsilon^2}(y_1 - a_1) &&= y_1 \\
+P_2 &= P_1 \left( 1 - \frac{P_1}{P_1 + \sigma_\epsilon^2}\right) + \sigma_\eta^2 &&= \sigma_\epsilon^2 + \sigma_\eta^2
+\end{align*}
+
+Note that the Kalman filter is defined for $t \geq 2$, this also means our smoothing recursions are defined in this time window as well. To know what our smoothing recursions yield for $t=1$ given our diffuse prior, we need to do more work. From the conditional expectation of our state, we get
+
+\begin{align*}
+\hat{\alpha}_1 &= a_1 + P_1 \left[ \frac{1}{P_1 + \sigma_\epsilon^2} v_1 + \left( 1 - \frac{P_1}{P_1 + \sigma_\epsilon^2} r_1 \right) \right] \\
+&= a_1 + v_1 + \sigma_\epsilon^2 r_1 \\
+&= y_1 + \sigma_\epsilon^2 r_1
+\end{align*}
+
+\noindent And by a similar calculation, 
+
+\[
+V_1 = \sigma_\epsilon^2 - (\sigma_\eta^2)^2 N_1
+\]
+
+
+
+\subsection{Estimation exercise: GRAB closes}
+
+Actual estimation is a multistep process. The main parameters we are estimating in this model are the noise variances $\sigma_\epsilon^2$ and $\sigma_\eta^2$, but the likelihood we are maximizing comes from the Kalman filter results. So maximizing the likelihood involes calculating the filter given some values of the noise variance, and then checking the log likelihood of the resulting Kalman filter. Estimation is numerically solved by iterating the assumed values of the noise variances until we converge on a maximum log likelihood.
+
+
+Apply Kalman filter to get $v_t, F_t, a_t, P_t$, then apply backward recursions to get $\hat{\alpha}_t, V_t, r_t, N_t$.
+
+\subsection{What's really the difference between conditioning on $Y_n$ vs $Y_{t-1}$}
+If we note that 
 
 \[
 \hat{\alpha}_t = \mathbb{E}(\alpha_t \mid Y_n)
@@ -732,6 +820,7 @@ Y_n
 \end{align*}
 
 \noindent We want to isolate what equates to the mean of $\alpha_t$. Consequently, we don't really care about the second term being substracted, because it will only affect terms in the final expression that haveelements of $Y_n$, not $\alpha_t$.
+
 
 \bibliographystyle{plain}
 \bibliography{book}
