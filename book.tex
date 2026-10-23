@@ -678,148 +678,290 @@ Note that the Kalman filter is defined for $t \geq 2$, this also means our smoot
 V_1 = \sigma_\epsilon^2 - (\sigma_\eta^2)^2 N_1
 \]
 
+\section{General Linear Models}
 
-
-\subsection{Estimation exercise: GRAB closes}
-
-Actual estimation is a multistep process. The main parameters we are estimating in this model are the noise variances $\sigma_\epsilon^2$ and $\sigma_\eta^2$, but the likelihood we are maximizing comes from the Kalman filter results. So maximizing the likelihood involes calculating the filter given some values of the noise variance, and then checking the log likelihood of the resulting Kalman filter. Estimation is numerically solved by iterating the assumed values of the noise variances until we converge on a maximum log likelihood.
-
-
-Apply Kalman filter to get $v_t, F_t, a_t, P_t$, then apply backward recursions to get $\hat{\alpha}_t, V_t, r_t, N_t$.
-
-\subsection{What's really the difference between conditioning on $Y_n$ vs $Y_{t-1}$}
-If we note that 
-
-\[
-\hat{\alpha}_t = \mathbb{E}(\alpha_t \mid Y_n)
-\]
-
-\noindent then we can extend this to the multivariate case and apply it to our local level model:
+The Kalman filter results for general linear models depend on some multivariate regressions results. The main results are the formulas for the expected values and variances of a multivariate system. We assume normality here, but the same results can be had without doing so. Assume $x$ and $y$ are vectors of random variables and 
 
 \begin{align*}
-p(\alpha_t, Y_n) &= p(Y_n) p(\alpha_t \mid Y_n) \\
-f_{\alpha_t, Y_n} (\alpha_t, Y_n) &= f_{Y_n} (Y_n) f_{\alpha_t \mid Y_n} (\alpha_t \mid Y_n)  \\
-\frac{f_{\alpha_t, Y_n} (\alpha_t, Y_n)}{f_{Y_n} (Y_n)} &= f_{\alpha_t \mid Y_n} (\alpha_t \mid Y_n)
-\end{align*}
-
-\noindent and we have for our local level model
-
-\begin{align*}
-Y_n &\sim N(\bm{1}a_1, \Omega) \\
-\alpha_t = y_t - \epsilon_t &\sim N(a_1, \sigma_\epsilon^2 + (t-1)\sigma_\eta^2 + \sigma_\epsilon^2)
-\end{align*}
-
-\noindent To understand where this is coming from, note that our model of $y_t$ can be expressed as
-
-\[
-y_t = a_1 + \sum_{j=1}^{t-1} \eta_j + \epsilon_t
-\]
-
-\noindent because each period we have $\epsilon_t$ and $\eta_t$ but $\eta_t$ only affects the next period, more explicitly
-
-\[
-Y_n = \begin{pmatrix}
-a_1 + \epsilon_1 \\
-a_1 + \eta_1 + \epsilon_2 \\
-a_1 + \eta_1 + \eta_2 + \epsilon_3 \\
-\vdots \\
-a_1 + \sum_{t=1}^{n-1} \eta_t + \epsilon_n
-\end{pmatrix}
-\]
-
-\noindent and so
-
-\begin{align*}
-\Omega &= \text{Var}(Y_n) = \mathbb{E} [(Y_n - \mathbb{E}(Y_n))(Y_n - \mathbb{E})'] \\
-&= \begin{pmatrix}
-\text{Var}(y_1) & \text{Cov} (y_1, y_2) & \cdots & \text{Cov}(y_1, y_n) \\
-\text{Cov}(y_2, y_1) & \text{Var}(y_2) & & \\
-\vdots & & \ddots & \\
-\text{Cov}(y_n, y_1) & & & \text{Var}(y_n)
-\end{pmatrix} \\
-&= \begin{pmatrix}
-P_1 + \sigma_\epsilon^2 & P_1 & P_1 & \cdots & P_1 \\
-P_1 & P_1 + \sigma_\eta^2 + \sigma_\epsilon^2 & P_1 + \sigma_\eta^2 & & \\
-P_1 & P_1 + \sigma_\eta^2 & P_1 + 2 \sigma_\eta^2 + \sigma_\epsilon^2 & & \\
-\vdots & & & \ddots & \\
-P_1 & & & & P_1 + (n-1) \sigma_\eta^2 + \sigma_\epsilon^2
+\mathbb{E}\begin{pmatrix}
+x \\
+y
+\end{pmatrix} &= \begin{pmatrix}
+\mu_x \\
+\mu_y
+\end{pmatrix} & \text{Var}\begin{pmatrix}
+x \\
+y
+\end{pmatrix} &= \begin{pmatrix}
+\Sigma_{xx} & \Sigma_{xy} \\
+\Sigma_{xy}' & \Sigma_{yy}
 \end{pmatrix}
 \end{align*}
 
-\noindent Note how the variances due to shocks to the random walk enter the elements and where they are absent. They enter when two observations share historical shocks: $\sigma_\eta^2$ is present after the first period, in proportion to the overlap in historical periods (i.e. in proportion to the earlier observations shocks). Also note where variance to the idiosyncratic shocks $\epsilon_t$ appears: only on diagonal elements.
+\noindent and $\Sigma_{yy}$ is nonsingular. Given this, we have
+
+\begin{align*}
+\mathbb{E}(x \mid y) &= \mu_x + \Sigma_{xy}\Sigma_{yy}^{-1}(y - \mu_y) \\
+\text{Var}(x \mid y) &= \sigma_{xx} - \Sigma_{xy} \Sigma_{yy}^{-1} \Sigma_{xy}'.
+\end{align*}
+
+The general linear model is
+
+\begin{align*}
+y_t &= Z_t \alpha_t + \epsilon_t, & \epsilon_t &\sim N(0, H_t) \\
+\alpha_{t+1} &= T_t \alpha_t + R_t \eta_t, & \eta_t &\sim N(0, Q_t) \\
+&& \alpha_1 &\sim N(a_1, P_1) \\
+&& t &= 1, ..., n
+\end{align*}
+
+\noindent All variables are multivariate in the expected way, except $\eta_t$ whose dimension may be less than $\alpha_t$ if certain dimensions of $\alpha_t$ do not have a random shock (i.e. their evolution is deterministic).
+
+There are several similarities to the local level model. First, we assume initially that several parts of this model are known, such that we can later estimate certain parameters to lock all in place, or initialize certain paramters. The matrices $Z_t, H_t, T_t, R_t$ and $Q_t$ are all assumed to be known; the errors $\epsilon_t$ and $\eta_t$ are assumed to be serially and mutually independent at all points in time; the initial mean and variance of the state, $a_1, P_1$, are assumed to be known.
+
+Given all this, we are interested in estimating
+
+\begin{align*}
+a_{t+1} &= \mathbb{E}(\alpha_{t+1} \mid Y_t) & P_{t+1} &= \text{Var}(\alpha_{t+1} \mid Y_t) \\
+a_{t \mid t} &= \mathbb{E}(\alpha_{t} \mid Y_t) & P_{t \mid t} &= \text{Var}(\alpha_{t} \mid Y_t).
+\end{align*}
+
+\noindent We have that the one-step ahead prediction errors are
 
 \[
-\begin{pmatrix}
-\alpha_t \\
-Y_n
-\end{pmatrix} \sim N \left( a_t \bm{1}_{n+1}, \begin{pmatrix}
-\text{Var}(\alpha_t) & \text{Cov}(\alpha_t, Y_n') \\
-\text{Cov}(Y_n, \alpha_t) & \text{Var}(Y_n)
-\end{pmatrix} \right)
+v_t = y_t - \mathbb{E}(y_t \mid Y_{t-1}) = y_t - Z_t a_t
 \]
 
-\noindent where
+These prediction errors are independent of past observations, so given the above multivariate regression result and that $\mathbb{E}(v_t | Y_{t-1}) = 0$, we can write
 
 \[
-\begin{pmatrix}
-\text{Var}(\alpha_t) & \text{Cov}(\alpha_t, Y_n') \\
-\text{Cov}(Y_n, \alpha_t) & \text{Var}(Y_n)
-\end{pmatrix} = \begin{pmatrix}
-\text{Var}(y_t - \epsilon_t) & \text{Cov}(y_t - \epsilon_t, y_1) & \cdots & \text{Cov}(y_t - \epsilon_t, y_t) & \cdots & \text{Cov}(y_t - \epsilon_t, y_n) \\
-\text{Cov}(y_1, y_t - \epsilon_t) & & & & \\
-\vdots & & & & \\
-\text{Cov}(y_t, y_t - \epsilon_t) & & & \Omega & \\
-\vdots & & & & \\
-\text{Cov}(y_n, y_t - \epsilon_t) & & & & \\
-\end{pmatrix}
+a_{t \mid t} = \mathbb{E}(\alpha_t \mid Y_{t-1}) + \text{Cov}(\alpha_t, v_t \mid Y_{t-1}) \text{Var}(v_t \mid Y_{t-1})^{-1} v_t.
 \]
 
-\noindent We are not adding redundant data to the vector $Y_n$ because we are adding the state explicitly, which requires considering the difference between the observation and its error as opposed to just the observation, therefore adding new information to the system. The multivariate normal distribution is
+\noindent This is known as the updating step, in which we take the information we gather at $t$, the term with $v_t$, and use it to update our expectation of the state from $t-1$, the first term. Given our model we can be more specific in how we represent this updating process:
+
+\begin{align*}
+\text{Cov}(\alpha_t, v_t \mid Y_{t-1}) &= \mathbb{E} \Big( \big(\alpha_t - \mathbb{E}(\alpha_t \mid Y_{t-1}) \big) \big(v_t - \mathbb{E}(v_t \mid Y_{t-1}) \big)' \mid Y_{t-1} \Big) \\
+&= \mathbb{E} \Big( \big(\alpha_t - a_t \big) v_t' \mid Y_{t-1} \Big) \\
+&= \mathbb{E} \Big( \alpha_t v_t' \mid Y_{t-1} \Big) \\
+&= \mathbb{E} \Big( \alpha_t (Z_t \alpha_t + \epsilon_t - Z_t a_t)' \mid Y_{t-1} \Big) \\
+&= \mathbb{E} \Big( \alpha_t (\alpha_t - a_t)' \mid Y_{t-1} \Big) Z_t' \\
+&= \mathbb{E} \Big( (\alpha_t - a_t + a_t) (\alpha_t - a_t)' \mid Y_{t-1} \Big) Z_t' \\
+&= \mathbb{E} \Big( (\alpha_t - a_t) (\alpha_t - a_t)' \mid Y_{t-1} \Big) Z_t' + \mathbb{E} \Big( a_t (\alpha_t - a_t)' \mid Y_{t-1} \Big) Z_t' \\
+&= P_t Z_t' + a_t \mathbb{E} \Big( (\alpha_t - a_t)' \mid Y_{t-1} \Big) Z_t' \\
+&= P_t Z_t'
+\end{align*}
+
+\noindent This is also sometimes expressed as 
 
 \[
-f_{\bm{X}} (x_1, ..., x_n) = \frac{1}{\sqrt{(2\pi)^n |\bm{\Sigma}|}} \text{exp} \left(\frac{-1}{2} (\bm{x} - \bm{\mu_x})' \bm{\Sigma}^{-1} (\bm{x} - \bm{\mu_x}) \right) = N(\bm{\mu_x}, \bm{\Sigma})
+M_t = P_t Z_t'.
 \]
 
-\noindent so
+\noindent Again, this is the covariance between prediction errors and the state at time $t$ given all the information through $t-1$. This is the same as the covariance between the state and the observations. In our model, it has this specific form because the only differences between the observations and the state are mediated by $Z_t$ and $\epsilon_t$. $\epsilon_t$ is assumed to be noise, so in expectation is not related to how the state and observations covary. In expectation, then, the observations are driven entirely by the state, $\mathbb{E}(y_t) = \mathbb{E}(Z_t \alpha_t)$. So how state and observations covary depends only on how the underlying state varies, $P_t$, and how the state gets transformed into expected observations, $Z_t$: $M_t = P_t Z_t'$. Note that $M_t$ is $m \times p$ because it describes how $(y_{1,t}, ..., y_{m,t})$ or $(v_{1,t}, ..., v_{m,t})$ covary with $(\alpha_{1, t}, ..., \alpha_{p,t})$.
+
+
+To complete the expression of the second term of $a_{t \mid t}$, we have
 
 \[
-f_{\alpha_t, Y_n}(\alpha_t, Y_n) = \text{const.} \times \exp \left( \dfrac{-1}{2} \left( \begin{pmatrix}
-\alpha_t \\
-Y_n
-\end{pmatrix} - a_1 \bm{1}_{n+1}\right)' \begin{pmatrix}
-\text{Var}(\alpha_t) & \text{Cov}(\alpha_t, Y_n') \\
-\text{Cov}(Y_n, \alpha_t) & \Omega
-\end{pmatrix}^{-1} \left( \begin{pmatrix}
-\alpha_t \\
-Y_n
-\end{pmatrix} - a_1 \bm{1}_{n+1} \right)\right)
+\text{Var}(v_t \mid Y_{t-1}) = F_t =  Z_t P_t Z_t' + H_t
+\]
+
+So we can concisely represent the updating step for the general linear model as
+
+\[
+a_{t \mid t} = a_t + M_t F_t^{-1} v_t
+\]
+
+\noindent and also from the previous regression result
+
+\begin{align*}
+P_{t \mid t} &= \text{Var}(\alpha_t \mid Y_{t-1}, v_t) \\
+&= \text{Var}(\alpha_t \mid Y_{t-1}) - \text{Cov}(\alpha_t, v_t \mid Y_{t-1}) \text{Var}(v_t \mid Y_{t-1})^{-1} \text{Cov}(\alpha_t, v_t \mid Y_{t-1})' \\
+&= P_t - P_t Z_t' F_t^{-1} Z_t P_t \\
+&= P_t - M_t F_t^{-1} M_t'
+\end{align*}
+
+\noindent Rememeber, $P_t$ is symmetric.
+
+The recursion equations for the Kalman filter are then
+
+\begin{align*}
+a_{t+1} &= \mathbb{E}(T_t \alpha_t + R_t \eta_t | Y_t) & P_{t+1} &= \text{Var}(T_t \alpha_t + R_t \eta_t \mid Y_t) \\
+&= T_t a_{t \mid t} & &= T_t \text{Var}(\alpha_t \mid Y_t) Y_t' + R_t Q_t R_t' \\
+&= T_t a_t + T_t M_t F_t^{-1} v_t  & &= T_t P_t T_t' - T_t M_t F_t^{-1} M_t' T_t' + R_t Q_t R_t' \\
+&= T_t a_t + K_t v_t & &
+\end{align*}
+
+\noindent with
+
+\begin{align*}
+K_t &= T_t M_t F_t^{-1} & F_t &= Z_t P_t Z_t' + H_t
+\end{align*}
+
+\noindent the Kalman gain and one-step ahead forecast error variance.
+
+It's worth it to take a step back and think about $K_t$ and $F_t$. The Kalman gain, as in the local level model, mediates how prediction errors are used to update our expectations of state next period. It is mediated by the varaince of prediction errors, which is comprised of how the underlying variance of state translates to variance in observations, $Z_t P_t Z_t'$, and the noise in observations, $H_t$. If the state and observations covary to a high degree, then $M_t$ can be though of as ``large'', and for a given amount of noise in the observations, the Kalman gain will be high. Our expected state will be influenced by the errors we observe. Conversely, if our state and observations covary very little, than $M_t$ will be ``small'' and $F_t$ will be dominated by $H_t$, so we will not adjust out expectations at all if we observe a prediction error.
+
+Define the state estimation errors as
+
+\[
+x_t = \alpha_t - a_t, \text{ with } \text{Var}(x_t \mid Y_{t-1}) = P_t.
+\]
+
+\noindent It follows that the forecast errors are related to the state estimation errors:
+
+\begin{align*}
+v_t &= y_t - Z_t a_t, \\
+&= Z_t \alpha_t + \epsilon_t - Z_t a_t, \\
+&= Z_t x_t + \epsilon_t,
+\end{align*}
+
+\noindent and
+
+\begin{align*}
+x_{t+1} &= \alpha_{t+1} - a_{t+1} \\
+&= T_t \alpha_t + R_t \eta_t - (T_t a_t + K_t v_t) \\
+&= T_t (x_t + a_t) + R_t \eta_t - T_t a_t - K_t (Z_t x_t + \epsilon_t)\\
+&= T_t x_t + R_t \eta_t - K_t Z_t x_t - K_t \epsilon_t \\
+&= L_t x_t + R_t \eta_t - K_t \epsilon_t 
+\end{align*}
+
+\noindent where we define $L_t = T_t - K_t Z_t$. Note the similarity to the state update equation $a_{t+1} = T_t a_t + K_t v_t$. Here $L_t$ acts on $x_t$ and the negative sign indicates that while we may update our expectations of state in one direction, our state estimation error may often be in the opposite direction.
+
+$L_t$ allows us to write the Kalman recursion for state variance in a more concise way,
+
+\begin{align}
+P_{t+1} &= \text{Var}(x_{t+1} \mid Y_t) \nonumber \\
+&= \mathbb{E}((\alpha_{t+1} - a_{t+1}) x_{t+1}' \mid Y_t) \nonumber \\
+&= \mathbb{E}(\alpha_{t+1} x_{t+1}' \mid Y_t) \nonumber \\
+&= \mathbb{E}((T_t \alpha_t + R_t \eta_t) (L_t x_t + R_t \eta_t - K_t \epsilon_t)' \mid Y_t) \nonumber \\
+&= T_t P_t L_t' + R_t Q_t R_t' \label{eq:kal-var-update-simple} \\
+\end{align}
+
+To estimate the smoothed state vector given our data, we first represent this estimate as
+
+\[
+\hat{\alpha}_t = \mathbb{E}(\alpha_t \mid Y_n) = \mathbb{E}(\alpha_t \mid Y_{t-1}, v_{1:n}) =  a_t + \sum_{j=t}^n \text{Cov}(\alpha_t, v_j \mid Y_{t-1})F_j^{-1} v_j
+\]
+
+\noindent Then, notice that in general
+
+\[
+\text{Cov}(\alpha_t, v_j \mid Y_{t-1}) = \mathbb{E}(\alpha_t x_j' \mid Y_{t-1})Z_j', \text{ for } j=t, ..., n
 \]
 
 \noindent and
 
-\[
-f_{Y_n}(Y_n) = \text{const.} \times \exp \left( 
-    \dfrac{-1}{2} \left( Y_n - a_1 \bm{1}_n \right)' \Omega^{-1} \left( Y_n - a_1 \bm{1}_n \right)
-\right)
-\]
+\begin{align}
+\mathbb{E}(\alpha_t x_t' \mid Y_{t-1}) &= \mathbb{E}(\alpha_t (\alpha_t - a_t)' \mid Y_{t-1}) = P_t \nonumber \\
+\mathbb{E}(\alpha_t x_{t+1}' \mid Y_{t-1}) &= \mathbb{E}(\alpha_t (L_t x_t + R_t \eta_t - K_t \epsilon_t)' \mid Y_{t-1}) = P_t L_t' \nonumber \\
+&\vdots \nonumber \\
+\mathbb{E}(\alpha_t x_{t+n}' \mid Y_{t-1}) &= P_t L_t' \cdots L_n' \label{eq:smooth-rec-state}
+\end{align}
 
-\noindent All the action is taking place in the exponential, so, dropping the $-1/2$,
+\noindent Notice the similarities and differences between Equation \ref{eq:smooth-rec-state} and those hinted at by Equation \ref{eq:kal-var-update-simple}. Equation \ref{eq:kal-var-update-simple} shows that there should be a bunch of $T_t$ factors and $R_t Q_t R_t'$ terms, but these do not show up in Equation \ref{eq:smooth-rec-state}. Specifically, you would expect something like
 
 \begin{align*}
-\text{exponential} &= \left( \begin{pmatrix}
-\alpha_t \\
-Y_n
-\end{pmatrix} - a_1 \bm{1}_{n+1}\right)' \begin{pmatrix}
-\text{Var}(\alpha_t) & \text{Cov}(\alpha_t, Y_n') \\
-\text{Cov}(Y_n, \alpha_t) & \Omega
-\end{pmatrix}^{-1} \left( \begin{pmatrix}
-\alpha_t \\
-Y_n
-\end{pmatrix} - a_1 \bm{1}_{n+1} \right) \\
-& - \left( Y_n - a_1 \bm{1}_n \right)' \Omega^{-1} \left( Y_n - a_1 \bm{1}_n \right)
+P_{t+1} &= T_t P_t L_t' + R_t Q_t R_t' \\
+P_{t+2} &= T_{t+1} P_{t+1} L_{t+1}' + R_{t+1} Q_{t+1} R_{t+1}' \\
+&= T_{t+1} (T_t P_t L_t' + R_t Q_t R_t') L_{t+1}' + R_{t+1} Q_{t+1} R_{t+1}' \\
+&= T_{t+1} T_t P_t L_t' L_{t+1}' + R_t Q_t R_t' L_{t+1}' + R_{t+1} Q_{t+1} R_{t+1}' \\
+&\vdots
 \end{align*}
 
-\noindent We want to isolate what equates to the mean of $\alpha_t$. Consequently, we don't really care about the second term being substracted, because it will only affect terms in the final expression that haveelements of $Y_n$, not $\alpha_t$.
+\noindent Yet we do not see this because Equation \ref{eq:smooth-rec-state} is only trying to make inferences at $t$, not $t+1$: we may know the future prediction errors, but we only care about estimating $\hat{\alpha}_t$. Consequently, we have no $T_t$ factors because $T_t$ is a state transition matrix and we do not care about the evolution of state, and we have no $R_t Q_t R_t$ terms because $Q_t$ only exists when there are contemporary state noise terms to vary with each other and we have no noise in $\alpha_t$ as of $t$.
+
+So, when we consider how the current state covaries with future prediction or state estimation errors, we ultimately only need to take into account the state estimation errors because the only difference between the two is noise in our observations. Since we only care about state estimation errors and we know how they evolve over time, the covariance between them and our smoothed state estimate only takes into account how the current state covaries with the current state estimation error, $P_t$, and the part of this evolution over time not due to noise, $L_t$'.
+
+The smoothed state estimates for the general linear model are then
+
+\begin{align*}
+\hat{\alpha}_n &= a_n + P_n Z_n' F_n^{-1} v_n, \\
+\hat{\alpha}_{n-1} &= a_{n-1} + P_{n-1} Z_{n-1}' F_{n-1}^{-1} v_{n-1} + P_{n-1} L_n' Z_n' F_n^{-1} v_n, \\
+&\vdots
+\end{align*}
+
+\noindent You can see how these are essentially the state prediction $a_t$ plus a weighted sum of the prediction errors at $t$ and beyond. We summarize this with
+
+\begin{align*}
+\hat{\alpha}_t &= a_t + P_t r_{t-1},\\
+r_{t-1} &= Z_t' F_t^{-1} v_t + L_{t+1}' Z_{t+2}' F_{t+2}' v_{t+1} + \cdots + L_{t+1}' \cdots L_{n-1}' Z_n' F_n^{-1} v_n
+\end{align*}
+
+\noindent and $r_t$ can be computed from a backwards recursion
+
+\[
+r_{t-1} = Z_t' F_t^{-1} v_t + L_t' r_t
+\]
+
+\noindent with $r=0$ as in the local level case. The state smoothing backwards recursion is then
+
+\[
+\hat{\alpha}_t = a_t + P_t r_{t-1}
+\]
+
+Quickly, the smoothed state recursion equasions are 
+
+\begin{align*}
+L_t &= T_t - K_t Z_t \\
+\hat{\alpha}_t &= a_t + P_t r_{t-1} & V_t &= P_t - P_t N_{t-1} P_t \\
+r_{t-1} &= Z_t' F_t^{-1} v_t + L_t' r_t & N_{t-1} &= Z_t' F_t^{-1} Z_t + L_t' N_t L_t \\
+r_n &= 0 & N_n &= 0
+\end{align*}
+
+So, how do we initialize the filter and smoother? For the filter, we assumed $\alpha_1 \sim N(a_1, P_1)$, so we need to make assumptions about these parameters. We continue by assuming our observations are normally distributed, but the analysis holds without this assumption, too (apparently). A general model of the initial state vector in which some elements are known and some are not is
+
+\begin{align*}
+\alpha_1 &= a + A\delta + R_0 \eta_0 & \eta_0 &\sim N(0, Q_0).
+\end{align*}
+
+\noindent Here, let's assume $a$ is $m \times 1$ and is known (usually assumed to be zero), $\delta$ is $q \times 1$ and is unknown, and $A$ and $R_0$ are ``selection'' matrices with dimesions $m \times q$ and $m \times (m-q)$ respectively, such that the columns of $I_m$ are split between them and $A'R_0 = 0$. Finally, $Q_0$ is known and positive definite. An example implementation when all of $a_1$ and $P_1$ are known would have $A$ be $m \times m$ and the $R_0 \eta_0$ term go away.
+
+One way to proceed is to assume that 
+
+\[
+\delta \sim N(0, \kappa I_q)
+\]
+
+\noindent and eventually let $\kappa \rightarrow \infty$. This is analagous to the diffuse prior in the local level model, and is called a diffuse initialization. We can then see that
+
+\begin{align*}
+a_1 &= \mathbb{E}(\alpha_1) = \mathbb{E}(a + A\delta + R_0 \eta_0) = a \\
+P_1 &= \text{Var}(\alpha_1) = \text{Var}(a + A\delta + R_0 \eta_0) = \kappa A A' + R_0 Q_0 R_0' = \kappa P_\infty + P_*.
+\end{align*}
+
+\noindent $P_\infty$ is $m \times m$ with $q$ diagonal elements equal to $1$ and all others equal to $0$. Without loss of generality, we can assume that where the diagonal of $P_\infty$ is $1$ the associated element of $a$ is zero.
+
+Quick note: $O(\kappa^{-j})$ is a function $f(\kappa)$ such that that $\kappa^j f(\kappa)$ is finite as $\kappa \rightarrow \infty$ for $j = 1, 2$.
+
+The \textbf{exact initial Kalman filter} is derived based upon the expansion of $F_t^{-1}$ as a power series of $\kappa^{-1}$, which is in turn based upon thinking of $P_t$ as 
+
+\[
+P_t = \kappa P_{\infty,t} + P_{*,t} + O(\kappa^{-1})
+\]
+
+So, where does this come from? $P_{\infty, t}$ represents the diffuse part of the variance that scales with $\kappa$. $P_{*,t}$ represents the stationary part. $O(\kappa)$ is the part that disappears quickly as $\kappa \rightarrow \infty$. This is important because the Kalman gain depends on $F_t$ which in turn depends on $P_t$. Specifically, we can write the Kalman gain as
+
+\[
+K_t = T_t M_t F_t^{-1}
+\]
+
+\noindent where
+
+\begin{align*}
+F_t &= Z_t P_t Z_t' + H_t \\
+M_t &= P_t Z_t'
+\end{align*}
+
+\noindent and using the decomposition we defined above for $P_t$,
+
+\begin{align*}
+F_t &= \kappa Z_t P_{\infty,t} Z_t' + Z_t P_{*,t} Z_t' + H_t + O(\kappa^{-1}) &&= \kappa F_{\infty, t} + F_{*,t} + O(\kappa^{-1})\\
+M_t &= \kappa P_{\infty,t} Z_t' + P_{*,t} Z_t' + O(\kappa^{-1}) &&= \kappa M_{\infty,t} + M_{*,t} + O(\kappa^{-1})
+\end{align*}
+
+%Why don't we expand M as well?
+
 
 
 \bibliographystyle{plain}
